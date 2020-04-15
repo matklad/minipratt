@@ -37,7 +37,9 @@ impl Lexer {
             .chars()
             .filter(|it| !it.is_ascii_whitespace())
             .map(|c| match c {
-                '0'..='9' | 'a'..='z' | 'A'..='Z' => Token::Atom(c),
+                '0'..='9' | 'a'..='z' | 'A'..='Z' => {
+                    Token::Atom(c)
+                }
                 _ => Token::Op(c),
             })
             .collect::<Vec<_>>();
@@ -55,12 +57,18 @@ impl Lexer {
 
 fn expr(input: &str) -> S {
     let mut lexer = Lexer::new(input);
-    expr_bp(&mut lexer, 0)
+    println!("\n{}", input);
+    let re = expr_bp(&mut lexer, 0);
+    println!();
+    re
 }
 
 fn expr_bp(lexer: &mut Lexer, min_bp: u8) -> S {
     let mut lhs = match lexer.next() {
-        Token::Atom(it) => S::Atom(it),
+        Token::Atom(it) => {
+            print!("{} ", it);
+            S::Atom(it)
+        }
         Token::Op('(') => {
             let lhs = expr_bp(lexer, 0);
             assert_eq!(lexer.next(), Token::Op(')'));
@@ -69,6 +77,7 @@ fn expr_bp(lexer: &mut Lexer, min_bp: u8) -> S {
         Token::Op(op) => {
             let ((), r_bp) = prefix_binding_power(op);
             let rhs = expr_bp(lexer, r_bp);
+            print!("{} ", op);
             S::Cons(op, vec![rhs])
         }
         t => panic!("bad token: {:?}", t),
@@ -163,8 +172,11 @@ fn tests() {
     let s = expr("f . g . h");
     assert_eq!(s.to_string(), "(. f (. g h))");
 
-    let s = expr(" 1 + 2 + f . g . h * 3 * 4");
-    assert_eq!(s.to_string(), "(+ (+ 1 2) (* (* (. f (. g h)) 3) 4))");
+    let s = expr("1 + 2 + f . g . h * 3 * 4");
+    assert_eq!(
+        s.to_string(),
+        "(+ (+ 1 2) (* (* (. f (. g h)) 3) 4))"
+    );
 
     let s = expr("--1 * 2");
     assert_eq!(s.to_string(), "(* (- (- 1)) 2)");
